@@ -2,29 +2,29 @@
 
 ### A proof relocates risk into the spec, the model, and the trusted base — shown in runnable Lean 4.
 
-I want Ethereum to have more formal verification, not less. That is why I am writing this.
+I want Ethereum to have more formal verification, not less. That's why I'm writing this.
 
-The fastest way to discredit the formal-methods program is to oversell it — to let "formally verified" come to mean "safe," and then watch the first verified-and-drained contract teach everyone the wrong lesson at the worst possible time. Formal verification is one of the most powerful tools we have. It deserves a precise claim, and the precise claim is narrower and more useful than the slogan it usually travels under. The researchers building Lean models of the protocol are doing some of the most valuable work in the ecosystem, and my aim is to sharpen the claim their work supports, not to diminish it. Everything that follows assumes a competent team using mature methodology: the gaps I point at are not mistakes such a team would make, but limits that remain after it has done everything right.
+There's a reliable way to discredit the whole formal-methods effort, and it's to oversell it. Let "formally verified" start to mean "safe," and the first time a verified contract gets drained, everyone walks away with the wrong lesson at the worst possible moment. I'd like to head that off, because the tool is genuinely one of the best we have. It just deserves a sharper claim than the one it usually travels under. The people building Lean models of the protocol are doing some of the most valuable work in the ecosystem, and I want to strengthen the claim their work supports, not chip at it. So take it as given throughout that the team is competent and the methods are mature. The gaps I'm about to point at aren't rookie mistakes. They're what's left after a good team has done everything right.
 
-Here is the claim I will defend:
+Here's the claim I'll defend:
 
-> Formal verification shrinks one surface — the gap between the implementation and its specification — to nearly zero. It does not remove risk; it **relocates** the remaining risk into the specification, the model, and the trusted base. The danger is treating that relocation as elimination.
+> Formal verification shrinks one surface, the gap between an implementation and its specification, almost to zero. What it doesn't do is remove risk. It moves risk elsewhere: into the specification, the model, and the trusted base. The failure mode is to mistake that move for an elimination.
 
-A machine-checked theorem does not say "the code is correct." Spelled out, it says:
+A machine-checked theorem doesn't say "the code is correct." Written out in full it says something more guarded:
 
-> **the implementation satisfies the specification — inside a model — modulo a trusted base — for the properties someone thought to state.**
+> the implementation satisfies the specification, inside a model, modulo a trusted base, for the properties someone thought to state.
 
-The first clause is what verification actually delivers, and it delivers it completely: tests and fuzzers sample the behavior space; a proof closes it. Every clause *after* the first is human judgment that the green checkmark does not check. The four examples below are each a complete, `sorry`-free Lean 4 proof (the trusted-base one is `sorry`-free except where the `sorry` is the point), and each demonstrates the shape of a real bug that can live in one of those later clauses. The code compiles; you can run it.
+The first clause is the part verification actually delivers, and it delivers it completely. Tests and fuzzers sample the space of behaviors; a proof covers all of it. Everything after that first clause is human judgment, and the checkmark doesn't touch any of it. The examples below are each a complete, `sorry`-free Lean 4 proof. (The trusted-base one carries a `sorry` on purpose, which I'll flag when we get there.) Each shows the shape of a real bug living in one of those later clauses. The code compiles, and you can run it yourself.
 
-The objection I most want to take seriously runs through the whole piece, so let me state it now: *"Every one of these is the spec or the model or the axioms being wrong — and getting those right is exactly what the verification program is for. So this is an argument for the program, not against it."* That is correct, and it is not a rebuttal. The program *is* the work of getting the spec, model, and trusted base right. The point is that this work is not obviously easier than writing correct code — and in places it is structurally unauditable from inside the proof. A culture that reads the checkmark as having *discharged* that work, rather than *relocated* it, will get hurt by a bug that was, technically, never there.
+One objection deserves to be raised straight away, because it runs under the whole piece: *"Every one of these is just the spec or the model or the axioms being wrong, and getting those right is the entire point of the verification program. So you're arguing for the program, not against it."* That's true, and it isn't a rebuttal. Getting the spec, model, and trusted base right is the work. My point is that the work isn't obviously easier than writing correct code in the first place, and that some of it can't be audited from inside the proof at all. The danger is cultural. A team that reads the checkmark as having *finished* that work, rather than relocated it, gets bitten by a bug that technically was never there.
 
-None of the four gaps below is a new discovery — each is well understood in the formal-methods literature, and a specialist will recognize all of them. I am not offering a theorem; I am offering an emphasis: a small, runnable demonstration of each gap, a mapping onto where this ecosystem's largest losses actually happened, and the operational discipline that follows. The only claim to novelty is the refusal to let a green checkmark quietly stand in for that work.
+I'm not claiming any of this is new. Each of the four gaps is well understood in the formal-methods literature, and a specialist will recognize all of them on sight. What I want to add is emphasis, plus three concrete things: a small runnable demonstration of each gap, a map onto where this ecosystem actually lost the most money, and the discipline that follows. If there's a novel claim, it's only this: don't let a green checkmark quietly stand in for that work.
 
 ---
 
-## First: what verification genuinely closes
+## First, what verification genuinely closes
 
-The gaps only matter relative to the power, so begin with the power — the thing a proof does that no test suite can. Model the machine word, state the property, and the overflow from Section 2 stops being a risk and becomes an impossibility:
+The gaps only mean something measured against the power, so start with the power. This is the thing a proof does that no test suite can. Model the machine word, state the property you care about, and the overflow from Section 2 stops being a risk and becomes impossible:
 
 ```lean
 def checkedAdd (a b : UInt8) : Option UInt8 :=
@@ -39,7 +39,7 @@ theorem checkedAdd_never_wraps (a b r : UInt8) (h : checkedAdd a b = some r) :
   · contradiction
 ```
 
-The quantifier is the whole point. That `∀ a b` ranges over all 256 × 256 inputs here, and all 2²⁵⁶ × 2²⁵⁶ at full width — and the proof discharges every one of them in a single step. A fuzzer samples that space; a proof closes it. The exact bug Section 2 will exhibit, a balance falling on a deposit, is now provably unreachable:
+The quantifier is doing all the work. That `∀ a b` covers all 256 × 256 inputs here, and all 2²⁵⁶ × 2²⁵⁶ at full width, and the proof settles every one of them at once. A fuzzer can only sample that space. The exact bug Section 2 will exhibit, a balance dropping when you deposit into it, is now unreachable, and provably so:
 
 ```lean
 theorem checkedAdd_never_loses (a b r : UInt8) (h : checkedAdd a b = some r) :
@@ -48,13 +48,13 @@ theorem checkedAdd_never_loses (a b r : UInt8) (h : checkedAdd a b = some r) :
   rw [UInt8.le_iff_toNat_le]; omega
 ```
 
-This is not a small thing. An entire class of bug, eliminated across every input, with a certainty no amount of testing can buy. That is what makes formal verification worth the effort — and worth getting the framing right. Hold onto it; everything that follows is about where its reach ends.
+That's not a small thing. A whole class of bug, gone across every possible input, with a certainty testing can't reach. It's why formal verification is worth the trouble, and why it's worth describing accurately. Keep it in mind; the rest of this is about where its reach stops.
 
 ---
 
-## 1. A proof only constrains what you remembered to state
+## 1. A proof only constrains what you thought to say
 
-Start with the cleanest case. We specify what it means to sort — "the output is sorted" — and prove an implementation meets it:
+Start with the simplest version. We say what it means to sort, "the output is sorted," and prove an implementation meets it:
 
 ```lean
 inductive Sorted : List Nat → Prop
@@ -70,7 +70,7 @@ theorem sortBad_correct : IsSortingSpec sortBad := by
   intro _; exact Sorted.nil
 ```
 
-`sortBad` throws away all of your data and returns the empty list, which is sorted, so the proof goes through. The missing property — that the output is a *permutation* of the input — was never stated, and nothing rules it out. In a function this small the omission is obvious. The point is that the *category* of error does not get more visible as the system grows. Here is the same hole in a transfer:
+`sortBad` discards your input and returns the empty list. The empty list is sorted, so the proof goes through. What's missing is the requirement that the output be a permutation of the input, and since nobody wrote that down, nothing rules out the cheat. At this size the gap is obvious. The trouble is that the same kind of gap doesn't get any more visible as the system grows. Here it is in a transfer:
 
 ```lean
 def TransferSpec (f : Nat → State → State) : Prop :=
@@ -84,9 +84,9 @@ theorem transferEvil_correct : TransferSpec transferEvil := by
   intro amt s _; exact ⟨rfl, rfl⟩
 ```
 
-`transferEvil` debits Alice and credits Bob exactly as specified — and *also* mints to the deployer on every call. The spec said what happens to Alice and Bob; it never said "and no other balance changes." The theft is invisible to it.
+`transferEvil` debits Alice and credits Bob exactly as the spec demands. It also quietly credits the deployer on every call. The spec pinned down what happens to Alice and Bob and said nothing about anyone else, so the theft is invisible to it.
 
-The honest part is that the stronger property catches it immediately:
+To be fair, the stronger property catches the cheat at once:
 
 ```lean
 def CompleteTransferSpec (f : Nat → State → State) : Prop :=
@@ -101,15 +101,15 @@ theorem transferEvil_not_complete : ¬ CompleteTransferSpec transferEvil := by
   exact Nat.succ_ne_zero 0 hd
 ```
 
-*"So write the stronger spec."* Yes — and mature methodology pushes hard in exactly that direction. Frame conditions make "what does not change" an explicit proof obligation; a full functional-correctness specification aims to pin behavior down completely. This is the right discipline, and serious teams practice it. But notice what it asks, and what it cannot provide. A specification can be far smaller and clearer than the code it governs — that is much of the value of writing one. Its *completeness*, though, is a separate matter, and it is the unverifiable one: enumerating every property an adversary could exploit — every account that must not change, every invariant that must hold across every interleaving — is open-ended work that no proof discharges for you. There is no theorem stating "you have now listed all the properties that matter." Verification is silent on every property you did not write down, and security bugs live, almost by definition, in the properties nobody thought to write down.
+"So write the stronger spec." Right, and good methodology pushes you to. Frame conditions turn "what doesn't change" into an explicit obligation; a full functional-correctness spec tries to pin behavior down completely. That's the correct discipline, and serious teams follow it. But look at what it asks for, and what it can't give back. A spec is often far smaller and clearer than the code it governs, and that's much of the reason to write one. Its completeness is a different question, and that's the one you can't discharge. Listing every property an adversary might reach for, every account that has to stay fixed, every invariant that has to survive every interleaving, is open-ended work. No proof hands you that list, and there's no theorem that says "you've now named everything that matters." Verification stays silent about every property you didn't write down, and that's almost exactly where security bugs live.
 
 ---
 
-## 2. A proof is a statement about a model, and you don't deploy the model
+## 2. A proof is about a model, and you don't ship the model
 
-This is the sharpest case, because it is not fixable by writing a better spec. The property is stated, the proof is genuine — and it is a true theorem about the wrong universe.
+This is the sharpest of the four, because a better spec won't fix it. The property is stated, the proof is real, and it's still a true theorem about the wrong universe.
 
-Take the most reasonable invariant imaginable: depositing money into your account never makes your balance go down. Over the natural numbers, it is a theorem:
+Take an invariant nobody would argue with: depositing into your account never lowers your balance. Over the natural numbers it's a theorem:
 
 ```lean
 def depositℕ (balance amount : Nat) : Nat := balance + amount
@@ -119,7 +119,7 @@ theorem deposit_never_loses_funds_ℕ (balance amount : Nat) :
   Nat.le_add_right balance amount
 ```
 
-The machine you deploy to does not have natural numbers. It has fixed-width words, and they wrap. The *identical* statement is now false — provably:
+The machine you deploy to doesn't have natural numbers. It has fixed-width words, and they wrap around. The same statement, word for word, is now false, and you can prove it false:
 
 ```lean
 def depositWord (balance amount : UInt8) : UInt8 := balance + amount
@@ -132,21 +132,21 @@ theorem deposit_CAN_lose_funds_word :
 example : depositWord 255 1 = 0 := by decide
 ```
 
-A maxed-out account that receives one unit is left holding nothing. The ℕ proof "ruled this out" — in a universe where it cannot happen. This is not a toy concern: the 2018 `batchOverflow` bug (CVE-2018-10299) drained the BeautyChain ERC-20 token through exactly this arithmetic, when two transfers of 2²⁵⁵ summed to 2²⁵⁶ and wrapped a 256-bit balance counter back to zero. A proof of conservation over ℕ would have certified the vulnerable contract as safe.
+A maxed-out account that receives one more unit ends up holding nothing. The proof over ℕ "ruled that out," in a universe where it couldn't happen in the first place. This isn't academic. In 2018 the `batchOverflow` bug (CVE-2018-10299) drained the BeautyChain ERC-20 token through exactly this arithmetic: two transfers of 2²⁵⁵ added up to 2²⁵⁶ and wrapped a 256-bit balance back to zero. A conservation proof over ℕ would have signed off on the vulnerable contract.
 
-Now, the necessary concession, because it is the one a serious reader reaches for instantly: *no competent team verifies token arithmetic over ℕ.* They model the machine word precisely, with bitvector reasoning, and this specific bug does not survive. Correct. But the lesson is not "use a better integer type." The lesson is that a proof's force stops exactly at the boundary of its model, and **that boundary is invisible from inside the proof.** `UInt8` is a stand-in; replace it with a perfect 256-bit word model and you have only moved the boundary. The model still omits *something* — the gas schedule, the compiler's lowering to bytecode, the scheduler, the hardware, the actual deployed artifact. A loop you prove terminates can still run out of gas and revert, because your model had no notion of cost. Two clients that each provably refine the same abstract spec can still fork the chain, because the spec abstracted away the byte encoding where they disagree.
+Now the obvious objection, and it's fair: no competent team models token arithmetic over ℕ. They use bitvector reasoning that captures the machine word exactly, and this particular bug doesn't survive it. Agreed. But the lesson isn't "pick a better integer type." It's that a proof's reach stops at the edge of its model, and you can't see that edge from inside the proof. `UInt8` here is just a stand-in. Swap in a flawless 256-bit word model and you've only moved the edge somewhere else. The model still leaves something out: the gas schedule, the lowering from source to bytecode, the scheduler, the hardware, the bytes that actually get deployed. A loop you proved terminates can still run out of gas and revert, because cost was never in the model. Two clients that each provably refine the same abstract spec can still split the chain, if the spec left the byte encoding open and they filled it in differently.
 
-There is also a gap that no choice of integer type touches at all, and it is concrete rather than philosophical: a proof about a *specification* of a system is not a proof about the *implementation* that runs it. You can verify a protocol in Lean and have said nothing yet about the independent client codebases that actually execute it — they are not extracted from the proof. Good teams know this and work to close it, by verifying clients directly or by using the formal spec as a differential-testing oracle against them. The point is not that anyone is unaware of the gap; it is that closing it is a second, comparably large effort, and the proof about the spec does not perform it. The bit-precise model closes the arithmetic gap and leaves this one untouched.
+There's another gap that no integer type touches, and it's concrete rather than philosophical. A proof about a specification is not a proof about the implementation that runs it. You can verify a protocol in Lean and still have said nothing about the client codebases that execute it, because they aren't extracted from the proof. Good teams know this and work at it, either by verifying clients directly or by running the formal spec as a differential-testing oracle against them. Nobody's unaware of the gap. The point is that closing it is a second effort about as large as the first, and the proof about the spec doesn't do it for you. The bit-precise model closes the arithmetic gap and leaves this one wide open.
 
-This is not a hypothetical failure of careless people. It is the explicit shape of the field's landmark successes. seL4 and CompCert are verified *down to stated assumptions* about the compiler, the hardware model, and what is out of scope — and the residual risk lives at exactly those boundaries, not in the verified core. seL4's own documentation is admirably blunt about this: its non-leakage result holds only for the information channels its hardware model represents, so timing side channels outside that model are simply out of scope. CompCert tells the encouraging mirror image of the same story — extensive fuzzing campaigns found no bugs in its verified optimizer, only in the unverified code around it. In both cases the proof held perfectly and the boundary was where attention was owed. The refinement from "the model I proved things about" to "the system that runs" is itself an assumption: you can make it smaller and more explicit, and good practice does exactly that, but you cannot make it a theorem from inside the proof, because the real machine is not a mathematical object your proof can quantify over.
+This isn't a story about careless people. It's the shape of the field's biggest successes. seL4 and CompCert are verified down to assumptions they state openly, about the compiler, the hardware model, and what's simply out of scope, and the risk that remains sits at those boundaries rather than in the verified core. seL4's documentation is refreshingly direct about it: the non-leakage result holds only for the information channels the hardware model represents, so timing side channels outside that model are out of scope, full stop. CompCert is the encouraging version of the same story. Years of fuzzing turned up no bugs in its verified optimizer, only in the unverified code around it. In both cases the proof did its job, and the boundary was where the attention was owed. The step from "the model I proved things about" to "the system that actually runs" is itself an assumption. You can make it smaller and write it down explicitly, and good practice does, but you can't turn it into a theorem from inside the proof, because the real machine isn't a mathematical object the proof can range over.
 
 ---
 
 ## 3. "The theorem checks" is not "the system is verified"
 
-A proof is sound relative to the kernel, the axioms in scope, and any shortcuts taken. The load-bearing fact: **the kernel checks the proof; it does not, and cannot, check whether your axioms are true.** That is human work, and a necessary axiom and a catastrophic one are the same keyword and the same green checkmark.
+A proof is only as sound as the kernel, the axioms in scope, and any shortcuts you took. Here's the fact that carries this section: the kernel checks your proof, but it has no way to check whether your axioms are true. That part is left to people. And a necessary axiom and a ruinous one look identical, same keyword, same green checkmark.
 
-You cannot verify a system that uses cryptography without assuming properties you cannot prove. This is correct, standard practice:
+You can't verify anything that uses cryptography without assuming properties you can't prove. That's normal and correct:
 
 ```lean
 axiom Hash : Nat → Nat
@@ -156,7 +156,7 @@ theorem ids_are_unique (a b : Nat) (h : Hash a = Hash b) : a = b :=
   hash_collision_resistant a b h
 ```
 
-Now a false axiom — but notice that it does not *look* false. Over the integers or the reals, `a * b / b = a` is a theorem; anyone who learned algebra there will accept it on sight. Over a fixed-width machine word it is false, because the multiplication overflows:
+Now a false axiom, except it doesn't look false. Over the integers or the reals, `a * b / b = a` is just true, and anyone who learned algebra there will nod it through. Over a fixed-width word it's false, because the multiplication overflows:
 
 ```lean
 axiom mul_div_cancel : ∀ (a b : UInt8), b ≠ 0 → a * b / b = a
@@ -166,7 +166,7 @@ theorem fee_recoverable (price qty : UInt8) (h : qty ≠ 0) :
   mul_div_cancel price qty h
 ```
 
-Lean accepts the axiom and the plausible "the fee is always recoverable" theorem built on it. It will *also* prove the axiom false — and that refutation leans on nothing but Lean's own standard logic, not on the bogus assumption:
+Lean accepts the axiom, and the plausible "the fee is always recoverable" theorem sitting on top of it. It will also prove the axiom false, using nothing but its own standard logic, with no help from the bogus assumption:
 
 ```lean
 theorem mul_div_cancel_is_false : ¬ ∀ (a b : UInt8), b ≠ 0 → a * b / b = a := by
@@ -174,7 +174,7 @@ theorem mul_div_cancel_is_false : ¬ ∀ (a b : UInt8), b ≠ 0 → a * b / b = 
   exact absurd (h 200 2 (by decide)) (by decide)   -- 200*2 = 144 (mod 256); 144/2 = 72 ≠ 200
 ```
 
-The kernel accepted the assumption and a refutation of it, side by side, without complaint. It validated the proofs; it never had an opinion about whether the axiom was true. And this is the realistic danger, not a blatant falsehood that review would catch: an axiom that imports intuition from the wrong number system, or models the environment — a memory model, a cost or timing assumption — and is *almost* right. Inside the proof it is indistinguishable from one that is exactly right, and it grows steadily easier to overlook as the specification grows. A third hatch is subtler still: an unfinished proof shipped green.
+So the kernel accepted the axiom and a refutation of that same axiom, side by side, without a word of complaint. It checked the proofs. It never formed an opinion about whether the axiom was true. And that's the realistic danger, not some flagrant `0 = 7` that review would catch on the first pass. It's an axiom that quietly imports intuition from the wrong number system, or describes the environment, a memory model, a cost or timing assumption, and gets it *almost* right. From inside the proof it's indistinguishable from one that's exactly right, and it gets easier to miss as the spec grows. A third hole is quieter still: a proof left unfinished and shipped green.
 
 ```lean
 theorem solvency_preserved
@@ -183,7 +183,7 @@ theorem solvency_preserved
   sorry
 ```
 
-Lean does not lie about this either — it emits a warning and records `sorryAx`. Whether that warning fails your build is a CI *policy* decision, not a property of the proof. "The pipeline is green" can mean "the proof checks *and* CI chose not to reject what would have caught this." The only audit that separates the three is to ask what each checkmark actually depends on:
+Lean doesn't lie about that one either. It prints a warning and records `sorryAx`. Whether the warning fails your build is a CI policy decision, not a fact about the proof. "The pipeline is green" can quietly mean "the proof checks, and CI was configured not to reject the thing that would have caught this." The only check that tells the three apart is to ask what each theorem actually rests on:
 
 ```lean
 #print axioms ids_are_unique
@@ -196,13 +196,13 @@ Lean does not lie about this either — it emits a warning and records `sorryAx`
 -- [sorryAx]                          ← unproven; a warning CI may have ignored
 ```
 
-*"That's malpractice, not a limitation of FV."* The false axiom, yes. But the *necessary* one is not malpractice — it is unavoidable, and it is just as load-bearing and just as unprovable. Every verified system rests on a trusted base: the kernel, the elaborator, any `native_decide` (which trades the kernel for the compiler), and a set of honest axioms about cryptography and hardware that could be subtly wrong. You cannot eliminate the trusted base; you can only audit it. So the correct statement is operational: **a verified project is only as strong as its axiom policy, its CI policy, and its dependency audit** — none of which the checkmark verifies for you.
+"That's malpractice, not a limitation of FV." For the false axiom, sure. But the necessary axiom isn't malpractice. It's unavoidable, and it's every bit as load-bearing and every bit as unprovable. Every verified system rests on a trusted base: the kernel, the elaborator, any use of `native_decide` (which swaps the kernel out for the compiler), and a set of honest assumptions about cryptography and hardware that might be subtly wrong. You don't get to remove the trusted base. You only get to audit it. So the honest statement is an operational one. A verified project is exactly as strong as its axiom policy, its CI policy, and its dependency audit, and the checkmark vouches for none of those.
 
 ---
 
-## 4. Verification cannot save you from a wrong requirement — only make it precise
+## 4. Verification can't save you from a wrong requirement, only state it precisely
 
-The deepest case, and the one that should worry the program most, because the proof is real *and* the specification is reasonable. Consider a withdrawal, decomposed into its two real effects — paying the user (in a real system, the external call that hands control to a possibly-malicious caller) and updating the internal record:
+This is the deepest case, and the one that should worry the program most, because the proof is real and the spec looks perfectly reasonable. Take a withdrawal, broken into its two real effects: paying the user, which in a live system is the external call that hands control to a possibly hostile caller, and updating the internal record.
 
 ```lean
 def pay   (amt : Nat) (w : World) : World := { w with pocketed := w.pocketed + amt }
@@ -212,7 +212,7 @@ def WithdrawSpec (before after : World) : Prop :=
   after.pocketed = before.pocketed + before.recorded ∧ after.recorded = 0
 ```
 
-The spec says: after a withdrawal of the full balance, the user has pocketed that balance and is owed nothing. Reasonable. Now two implementations — one pays before debiting, one debits before paying:
+The spec reads: after withdrawing the full balance, the user has pocketed that balance and is owed nothing. Reasonable enough. Now two implementations, one that pays before it debits and one that debits before it pays:
 
 ```lean
 def withdrawUnsafe (w : World) : World := let amt := w.recorded; debit amt (pay amt w)
@@ -225,7 +225,7 @@ theorem safe_meets_spec (w : World) : WithdrawSpec w (withdrawSafe w) := by
   refine ⟨?_, ?_⟩ <;> simp [withdrawSafe, pay, debit]
 ```
 
-**Both satisfy the spec.** The verifier is equally happy with either; "verified ✓" distinguishes nothing between them. But run each under reentrancy — the attacker re-enters during `pay`, before the record is updated — and they diverge. The missing property is the one nobody wrote down:
+Both satisfy the spec. The verifier is equally happy with either, and "verified" tells you nothing about which one you'd rather deploy. Run them under reentrancy, though, where the attacker re-enters during `pay`, before the record is updated, and they come apart. The property that separates them is the one nobody wrote down:
 
 ```lean
 -- The attacker re-enters during `pay`, before the record is updated.
@@ -249,39 +249,39 @@ theorem unsafe_reentrancy_overwithdraws : ¬ NoOverWithdrawal unsafeUnderReentra
   exact absurd (h { recorded := 100, pocketed := 0 }) (by decide)   -- pockets 200, not 100
 ```
 
-The safe order provably never over-withdraws. The unsafe order provably does — a recorded balance of 100 pays out 200. Both carried a flawless proof of the same specification. The entire difference between "fine" and "drained" lived in an ordering assumption — *the external call cannot re-enter before the state update* — that the shared mental model held and the spec never stated. This is the abstract shape of The DAO (June 2016), where a reentrant call drained roughly 3.6 million ETH by re-entering during the payout, before the balance was written down. It is the point in its purest form: the proof was not fake. The requirement was incomplete. Formal verification reproduced the requirement with perfect fidelity, including its hole.
+The safe order provably never overpays. The unsafe one provably does: start it with a recorded balance of 100 and it pays out 200. Both carry a clean proof of the same spec. The whole distance between "fine" and "drained" sat in one unstated assumption, that the external call can't re-enter before the state update, which everyone held in their heads and nobody put in the spec. This is The DAO (June 2016) in miniature, where a reentrant call pulled out roughly 3.6 million ETH by re-entering during the payout, before the balance was written down. The proof wasn't fake. The requirement was incomplete, and verification reproduced it faithfully, hole and all.
 
-*"A capable team would not stop at a final-state relation — a trace property, an effect-typed specification, or an explicit adversary permitted to re-enter would all expose this."* Conceded; that is the right instinct, and the tools to express it exist. But each of them requires deciding, in advance, to model the external call as an adversarial re-entry point — and that decision is precisely the knowledge the entire ecosystem lacked in 2016. The hard problem, stated plainly: the property had to be *known* to be written, and the richer the formalism, the more such choices it asks you to get right. The completeness of your property set is not something you can prove; it is something you discover, often after the exploit. Verification turns "is this code correct?" into "have we stated every property that matters?" — and the second question has no green checkmark.
+"A capable team wouldn't stop at a final-state relation. A trace property, an effect-typed spec, or an explicit adversary allowed to re-enter would all catch this." Granted, and that's the right instinct; the tools exist. But every one of them needs you to decide, up front, to model the external call as a re-entry point an attacker controls. That decision is exactly the knowledge the whole ecosystem was missing in 2016. The property had to be known before it could be written, and the richer the formalism, the more of these choices it asks you to get right. You can't prove your property set is complete. You find out it wasn't, usually after the exploit. Verification turns "is this code correct?" into "have we stated every property that matters?", and the second question doesn't come with a checkmark.
 
 ---
 
-## 5. The honest conclusion
+## 5. Where this leaves us
 
-None of this is an argument against formal verification. It is an argument against a framing.
+I'm not arguing against formal verification. I'm arguing against one way of describing what it buys you.
 
-Verification does something real and rare: it eliminates the bug class "the code does not do what the spec says," completely, across all inputs the model admits. That class is large and dangerous, and closing it is worth enormous effort. seL4 and CompCert are landmark achievements precisely because they closed it for real systems.
+It does something real and rare. It eliminates the bug class "the code doesn't do what the spec says," completely, across every input the model allows. That class is large and dangerous, and clearing it is worth a great deal of effort. seL4 and CompCert are landmarks precisely because they cleared it for real systems.
 
-But it shrinks *that* surface and **concentrates the remaining risk** into three places the checkmark does not touch:
+What it does is clear that one surface and concentrate the rest of the risk into three places the checkmark doesn't reach:
 
-- **the specification** — incomplete (§1) or faithfully wrong (§4),
-- **the model** — true theorems about the wrong universe, with a refinement gap to the real machine that is invisible from inside the proof (§2),
-- **the trusted base** — axioms the kernel never judges, and CI policy it never sets (§3).
+- the specification, which can be incomplete (§1) or faithfully wrong (§4);
+- the model, where you can have a true theorem about the wrong universe, with a refinement gap to the real machine you can't see from inside the proof (§2);
+- the trusted base, the axioms the kernel never judges and the CI policy it never sets (§3).
 
-The bugs that actually drained value from this ecosystem map onto those three places, not onto the implementation/spec gap a proof closes: The DAO's reentrancy was a requirement nobody had completed; the integer-overflow drains would have survived a proof conducted over the wrong arithmetic model (and would have been *caught* by one over the right one — which is exactly the point about model choice); consensus splits live at the boundary between a spec and the independent clients that implement it. A green checkmark *feels* like it has spoken to all of these. It has not — and in the overflow case it speaks only if you chose the model that lets it.
+The losses this ecosystem actually suffered line up with those three, not with the implementation-versus-spec gap a proof closes. The DAO was a requirement nobody had finished. The overflow drains would have slipped past a proof done over the wrong arithmetic model, and would have been caught by one done over the right model, which is the whole point about model choice. Consensus splits live on the boundary between a spec and the independent clients that implement it. A green checkmark feels like it has answered all of these. It hasn't, and in the overflow case it only answers if you happened to pick the model that lets it.
 
-So the slogan should not be "formally verified, therefore safe." It should be:
+So the slogan shouldn't be "formally verified, therefore safe." Closer to the truth:
 
-> Verification converts an open-ended search for bugs into a precise, bounded set of things you must still get right — the spec, the model, the trusted base. That set is now the entire game, and it deserves more scrutiny after the checkmark, not less.
+> Verification turns an open-ended search for bugs into a precise, bounded list of things you still have to get right: the spec, the model, the trusted base. That list is where the real work now lives, and it deserves more scrutiny once the checkmark is green, not less.
 
-Concretely, that means treating the gaps as first-class parts of the verification effort, not afterthoughts:
+In practice that means treating the gaps as part of the verification work, not as footnotes to it:
 
-- **Pair every functional spec with its completeness properties** — conservation, "nothing else changes," totality, permutation. Ask what the spec does *not* constrain.
-- **Verify over the deployment type and model the costs**, or state the refinement to the real machine as an explicit, reviewed assumption — and treat that assumption as attack surface.
-- **Don't let a spec proof stand in for an implementation guarantee** — verify the client too, or differential-test it against the executable spec; the gap between "the protocol is correct" and "this node is correct" is real work, not a formality.
-- **Put `#print axioms` in CI**, over every shipped theorem; make the axiom set and the `sorry` policy things humans sign off on.
-- **Write down the unstated assumptions** — atomicity, non-reentrancy, ordering — and prove the properties that depend on them, not just the final-state spec.
+- Pair every functional spec with its completeness properties: conservation, "nothing else changes," totality, permutation. Keep asking what the spec leaves unconstrained.
+- Verify over the type you actually deploy, and put the costs in the model. Failing that, write the refinement to the real machine down as an explicit assumption, and treat that assumption as attack surface.
+- Don't let a proof about the spec stand in for a guarantee about the implementation. Verify the client too, or differential-test it against the executable spec. The distance between "the protocol is correct" and "this node is correct" is real work.
+- Run `#print axioms` in CI over every theorem you ship, and make the axiom set and the `sorry` policy things a human signs off on.
+- Write the unstated assumptions down — atomicity, non-reentrancy, ordering — and prove the properties that depend on them, instead of stopping at the final-state spec.
 
-Do that, and verification delivers the safety it promises. Treat the checkmark as the finish line, and it risks substituting the feeling of certainty for the audit that certainty still requires. The tool is excellent; the finish line is simply further out than a green checkmark suggests. Naming that distance plainly is, I think, the surest way to help a program that deserves to succeed.
+Do that, and verification delivers what it promises. Treat the checkmark as the finish line and you've traded a real audit for the feeling of one. The tool is excellent. The finish line just sits further out than the checkmark suggests, and saying so plainly is, I think, the best way to help an effort that deserves to work.
 
 ---
 

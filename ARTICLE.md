@@ -1,6 +1,6 @@
 # Formal Verification Moves Trust — It Doesn't Remove It
 
-### A proof relocates risk into the spec, the model, and the trusted base. Four demonstrations in Lean 4.
+### A proof relocates risk into the spec, the model, and the trusted base — shown in runnable Lean 4.
 
 I want Ethereum to have more formal verification, not less. That is why I am writing this.
 

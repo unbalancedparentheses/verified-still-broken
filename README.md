@@ -1,6 +1,6 @@
 # verified-still-broken
 
-Five small Lean 4 examples that type-check under the project runner — with one intentional `sorry` warning. One shows what verification genuinely closes; the other four each sit on top of the shape of a real bug. They accompany the essay [*Formal Verification Moves Trust — It Doesn't Remove It*](https://federicocarrone.com/articles/formal-verification-moves-trust/).
+Five small Lean 4 examples that type-check under the project runner — with one intentional `sorry` warning. One shows what verification genuinely closes; the other four each sit on top of the shape of a real bug. They accompany the essay [*A Proof Is Only as Good as Its Spec*](https://federicocarrone.com/articles/formal-verification-moves-trust/).
 
 The point is not that formal verification fails. In every example, Lean succeeds exactly: the theorem is true. The bug lives in the *human boundary* around the proof — the specification, the model, or the trusted base. The essay's thesis:
 
